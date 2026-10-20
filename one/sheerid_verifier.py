@@ -8,6 +8,7 @@ from typing import Dict, Optional, Tuple
 from . import config
 from .name_generator import NameGenerator, generate_birth_date
 from .img_generator import generate_image, generate_psu_email
+from utils.proxy import get_system_proxy
 
 # 配置日志
 logging.basicConfig(
@@ -24,11 +25,19 @@ class SheerIDVerifier:
     def __init__(self, verification_id: str):
         self.verification_id = verification_id
         self.device_fingerprint = self._generate_device_fingerprint()
-        self.http_client = httpx.Client(timeout=30.0)
+        proxy = get_system_proxy()
+        if proxy:
+            logger.info(f"使用网络代理: {proxy}")
+            self.http_client = httpx.Client(timeout=30.0, proxy=proxy)
+        else:
+            self.http_client = httpx.Client(timeout=30.0)
 
     def __del__(self):
         if hasattr(self, "http_client"):
-            self.http_client.close()
+            try:
+                self.http_client.close()
+            except Exception:
+                pass
 
     @staticmethod
     def _generate_device_fingerprint() -> str:
@@ -87,6 +96,7 @@ class SheerIDVerifier:
         email: str = None,
         birth_date: str = None,
         school_id: str = None,
+        captcha_token: str = None,
     ) -> Dict:
         """执行验证流程"""
         try:
@@ -141,6 +151,10 @@ class SheerIDVerifier:
                 },
             }
 
+            if captcha_token:
+                logger.info("注入 Cloudflare Turnstile CaptchaToken...")
+                step2_body["captchaToken"] = captcha_token
+
             step2_data, step2_status = self._sheerid_request(
                 "POST",
                 f"{config.SHEERID_BASE_URL}/rest/v2/verification/{self.verification_id}/step/collectStudentPersonalInfo",
@@ -194,7 +208,6 @@ class SheerIDVerifier:
             logger.info(f"✅ 文档提交完成: {step6_data.get('currentStep')}")
             final_status = step6_data
 
-            # 不做状态轮询，直接返回等待审核
             return {
                 "success": True,
                 "pending": True,

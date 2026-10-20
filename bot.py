@@ -1,11 +1,18 @@
-"""Telegram 机器人主程序"""
+"""Telegram 机器人主程序 - Google One Pro 专属版"""
+import sys
 import logging
 from functools import partial
+
+# 解决 Windows 控制台编码问题 (GBK 下打印 Emoji 报错)
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 from telegram.ext import Application, CommandHandler
 
 from config import BOT_TOKEN
-from database_mysql import Database
+from database import Database
 from handlers.user_commands import (
     start_command,
     about_command,
@@ -15,13 +22,7 @@ from handlers.user_commands import (
     invite_command,
     use_command,
 )
-from handlers.verify_commands import (
-    verify_command,
-    verify2_command,
-    verify3_command,
-    verify4_command,
-    getV4Code_command,
-)
+from handlers.verify_commands import verify_command
 from handlers.admin_commands import (
     addbalance_command,
     block_command,
@@ -47,18 +48,18 @@ async def error_handler(update: object, context) -> None:
 
 def main():
     """主函数"""
-    # 初始化数据库
+    # 初始化数据库（支持 MySQL 或 SQLite）
     db = Database()
 
     # 创建应用 - 启用并发处理
     application = (
         Application.builder()
         .token(BOT_TOKEN)
-        .concurrent_updates(True)  # 🔥 关键：启用并发处理多个命令
+        .concurrent_updates(True)
         .build()
     )
 
-    # 注册用户命令（使用 partial 传递 db 参数）
+    # 注册用户基础命令
     application.add_handler(CommandHandler("start", partial(start_command, db=db)))
     application.add_handler(CommandHandler("about", partial(about_command, db=db)))
     application.add_handler(CommandHandler("help", partial(help_command, db=db)))
@@ -67,12 +68,9 @@ def main():
     application.add_handler(CommandHandler("invite", partial(invite_command, db=db)))
     application.add_handler(CommandHandler("use", partial(use_command, db=db)))
 
-    # 注册验证命令
+    # 注册 Google One Pro 认证命令（支持 /verify 与 /one）
     application.add_handler(CommandHandler("verify", partial(verify_command, db=db)))
-    application.add_handler(CommandHandler("verify2", partial(verify2_command, db=db)))
-    application.add_handler(CommandHandler("verify3", partial(verify3_command, db=db)))
-    application.add_handler(CommandHandler("verify4", partial(verify4_command, db=db)))
-    application.add_handler(CommandHandler("getV4Code", partial(getV4Code_command, db=db)))
+    application.add_handler(CommandHandler("one", partial(verify_command, db=db)))
 
     # 注册管理员命令
     application.add_handler(CommandHandler("addbalance", partial(addbalance_command, db=db)))
@@ -86,7 +84,7 @@ def main():
     # 注册错误处理器
     application.add_error_handler(error_handler)
 
-    logger.info("机器人启动中...")
+    logger.info("Google One Pro 认证机器人启动中...")
     application.run_polling(drop_pending_updates=True)
 
 

@@ -13,6 +13,31 @@
 
 ---
 
+## ⚡ 极速免配置模式：Google One Pro (Gemini Advanced 2TB) 一键自动化认证
+
+> 🌟 **无需配置 Telegram Bot 或 MySQL，支持直接终端/双击一键自动化！**
+> 采用 **DrissionPage 原生无痕引擎**，秒过 Cloudflare Turnstile 人机盾，自动生成全套高校官方在读证明并自动上传提交！
+
+### 使用方法：
+1. **安装依赖**：
+   ```bash
+   pip install -r requirements.txt
+   ```
+2. **启动认证**：
+   - **方式一（Windows 双击）**：直接双击运行 [`一键验证.bat`](一键验证.bat)
+   - **方式二（命令行）**：
+     ```bash
+     python verify_one.py "你的SheerID验证链接"
+     ```
+3. **流程说明**：
+   - 自动检测并挂载本地 Clash 代理
+   - 自动精准填写高校、姓名、出生年月及教育邮箱
+   - 自动穿透 Cloudflare Turnstile 人机验证盾
+   - 自动生成 Pennsylvania State University 官方在读证明并上传
+   - 10 秒内全自动完成认证
+
+---
+
 ## 📋 项目简介
 
 基于 Python 的 Telegram 机器人，自动完成多个平台的 SheerID 学生/教师身份认证。机器人自动生成身份信息、创建认证文档并提交到 SheerID 平台，大幅简化认证流程。

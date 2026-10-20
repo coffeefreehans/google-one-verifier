@@ -24,7 +24,7 @@ wheels/
 venv/
 env/
 ENV/
-.venv
+.venv/
 
 # IDE
 .vscode/
@@ -56,14 +56,13 @@ config_local.py
 # Docker
 .dockerignore
 
-# Playwright
-.playwright/
-
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
+# Automation Artifacts & User Data
+dp_user_data/
+*.png
+*.jpg
+*.jpeg
+*.pdf
+test_*.yaml
 
 # OS
 Thumbs.db
@@ -72,6 +71,3 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.bak
-*.swp
-test_*.png
-test_*.pdf
