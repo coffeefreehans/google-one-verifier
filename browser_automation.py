@@ -1,4 +1,4 @@
-"""SheerID 本地自动化模块 (基于 DrissionPage 原生无痕过盾)"""
+"""SheerID 本地自动化模块 (基于 DrissionPage 原生无痕过盾，每次动态生成全新真实学生身份)"""
 import os
 import sys
 import time
@@ -7,32 +7,56 @@ import logging
 from typing import Dict
 from urllib.parse import urlparse
 from DrissionPage import ChromiumPage, ChromiumOptions
-from one.img_generator import generate_image
+
+from one.name_generator import NameGenerator, generate_birth_date
+from one.img_generator import generate_image, generate_psu_email
 
 logger = logging.getLogger(__name__)
 
+MONTH_LOOKUP = {
+    "1": ["一月", "Jan", "1月", "01"],
+    "2": ["二月", "Feb", "2月", "02"],
+    "3": ["三月", "Mar", "3月", "03"],
+    "4": ["四月", "Apr", "4月", "04"],
+    "5": ["五月", "May", "5月", "05"],
+    "6": ["六月", "Jun", "6月", "06"],
+    "7": ["七月", "Jul", "7月", "07"],
+    "8": ["八月", "Aug", "8月", "08"],
+    "9": ["九月", "Sep", "9月", "09"],
+    "10": ["十月", "Oct", "10月", "10"],
+    "11": ["十一月", "Nov", "11月", "11"],
+    "12": ["十二月", "Dec", "12月", "12"],
+}
+
 
 def run_browser_automation(verification_url: str, school_id: str = "2565") -> Dict:
-    """运行浏览器全自动化流程"""
-    first_name = "Ethan"
-    last_name = "Miller"
-    b_year = "2002"
-    b_month = "11"
-    b_day = "18"
-    email = "ethan.miller934@psu.edu"
+    """运行浏览器全自动化流程（每次动态生成全新学生身份）"""
+    
+    # 1. 动态生成全新的真实学生资料（绝不使用预存硬编码信息）
+    name_info = NameGenerator.generate()
+    first_name = name_info["first_name"]
+    last_name = name_info["last_name"]
 
-    # 1. 生成配套在读证明
+    birth_info = generate_birth_date()
+    b_year = birth_info["year"]
+    b_month = birth_info["month"]
+    b_day = birth_info["day"]
+
+    email = generate_psu_email(first_name, last_name)
+
+    # 生成配套官方在读证明与课表
     card_png_path = os.path.abspath("student_card.png")
     img_data = generate_image(first_name, last_name, school_id)
     with open(card_png_path, "wb") as f:
         f.write(img_data)
+
     print("\n" + "=" * 60)
-    print("🎓 1. 已配套好宾州州立大学官方在读证明:")
+    print("🎓 1. 本次动态生成全新宾州州立大学学生身份:")
     print(f"   学生姓名: {first_name} {last_name}")
-    print(f"   出生日期: {b_year}-{b_month}-{b_day}")
+    print(f"   出生日期: {b_year}年 {b_month}月 {b_day}日")
     print(f"   目标高校: Pennsylvania State University-Main Campus")
-    print(f"   官方邮箱: {email}")
-    print(f"   证件文件: {card_png_path}")
+    print(f"   专属邮箱: {email}")
+    print(f"   官方证明: {card_png_path}")
     print("=" * 60 + "\n")
 
     # 2. 检查专用代理端口 17897 (美国节点) 是否开启
@@ -95,7 +119,7 @@ def run_browser_automation(verification_url: str, school_id: str = "2565") -> Di
         time.sleep(1)
 
         # 填写姓名与出生日期
-        print("📝 6. 自动填写学生姓名与出生日期...")
+        print(f"📝 6. 自动填写学生姓名 ({first_name} {last_name}) 与出生日期...")
         fn = page.ele('#sid-first-name')
         if fn:
             fn.input(first_name)
@@ -104,20 +128,38 @@ def run_browser_automation(verification_url: str, school_id: str = "2565") -> Di
             ln.input(last_name)
         bd = page.ele('#sid-birthdate-day')
         if bd:
-            bd.input(b_day)
+            bd.input(str(b_day))
         by = page.ele('#sid-birthdate-year')
         if by:
-            by.input(b_year)
+            by.input(str(b_year))
 
-        # 填写月份
+        # 动态匹配并选择月份
         bm = page.ele('#sid-birthdate__month')
         if bm:
             bm.click()
             time.sleep(0.5)
-            m = page.ele('xpath://div[@role="option"][contains(., "11") or contains(., "十一月") or contains(., "Nov")]') or \
-                page.ele('text:十一月') or page.ele('text:11')
-            if m:
-                m.click(by_js=True)
+            month_key = str(int(b_month))
+            keywords = MONTH_LOOKUP.get(month_key, [month_key])
+            
+            items = page.eles('css:#sid-birthdate__month-menu .sid-input-select-list__item') or \
+                    page.eles('xpath://div[@role="option"]')
+            
+            month_selected = False
+            for item in items:
+                txt = item.text.strip()
+                if any(k in txt for k in keywords) or txt == month_key:
+                    item.click(by_js=True)
+                    print(f"   ✅ 已选中出生月份: {txt}")
+                    month_selected = True
+                    break
+                    
+            if not month_selected:
+                for k in keywords:
+                    opt = page.ele(f'text:{k}')
+                    if opt:
+                        opt.click(by_js=True)
+                        print(f"   ✅ 已选中出生月份: {k}")
+                        break
             time.sleep(0.5)
 
         # 填写邮箱

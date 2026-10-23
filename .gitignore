@@ -63,6 +63,7 @@ dp_user_data/
 *.jpeg
 *.pdf
 test_*.yaml
+us_proxy.yaml
 
 # OS
 Thumbs.db
