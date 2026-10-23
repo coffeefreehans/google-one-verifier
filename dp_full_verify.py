@@ -1,13 +1,13 @@
 import os
 import sys
 import time
-import socket
 import logging
 from urllib.parse import urlparse
 from DrissionPage import ChromiumPage, ChromiumOptions
 
 from one.name_generator import NameGenerator, generate_birth_date
 from one.img_generator import generate_image, generate_psu_email
+from utils.proxy import get_system_proxy
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -47,21 +47,19 @@ def verify(url: str, school_id: str = "2565"):
     logger.info(f"✅ 本次动态生成学生: {first_name} {last_name}, 生日: {b_year}-{b_month}-{b_day}, 邮箱: {email}")
     logger.info(f"✅ 官方在读证明生成路径: {card_png_path}")
 
-    # 检查专用代理端口 17897 (美国节点) 是否开启
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    is_17897_open = (sock.connect_ex(('127.0.0.1', 17897)) == 0)
-    sock.close()
-    
-    proxy_port = 17897 if is_17897_open else 7897
-    proxy_addr = f"http://127.0.0.1:{proxy_port}"
-    logger.info(f"🌐 挂载专用节点: {proxy_addr} ({'🇺🇸 纯净美国专线' if proxy_port == 17897 else '默认节点'})")
-
     co = ChromiumOptions()
     co.set_browser_path(r"C:\Program Files\Google\Chrome\Application\chrome.exe")
     co.set_local_port(9333)
     user_data_dir = os.path.abspath("dp_user_data")
     co.set_user_data_path(user_data_dir)
-    co.set_proxy(proxy_addr)
+
+    proxy_url = get_system_proxy()
+    if proxy_url:
+        logger.info(f"🌐 自动挂载本机可用代理: {proxy_url}")
+        co.set_proxy(proxy_url)
+    else:
+        logger.info("🌐 未检测到本地代理，使用直连模式")
+
     co.headless(False)
 
     page = ChromiumPage(co)

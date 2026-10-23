@@ -2,14 +2,14 @@
 import os
 import sys
 import time
-import socket
 import logging
-from typing import Dict
+from typing import Dict, Optional
 from urllib.parse import urlparse
 from DrissionPage import ChromiumPage, ChromiumOptions
 
 from one.name_generator import NameGenerator, generate_birth_date
 from one.img_generator import generate_image, generate_psu_email
+from utils.proxy import get_system_proxy
 
 logger = logging.getLogger(__name__)
 
@@ -59,22 +59,20 @@ def run_browser_automation(verification_url: str, school_id: str = "2565") -> Di
     print(f"   官方证明: {card_png_path}")
     print("=" * 60 + "\n")
 
-    # 2. 检查专用代理端口 17897 (美国节点) 是否开启
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    is_17897_open = (sock.connect_ex(('127.0.0.1', 17897)) == 0)
-    sock.close()
-    
-    proxy_port = 17897 if is_17897_open else 7897
-    proxy_addr = f"http://127.0.0.1:{proxy_port}"
-    print(f"🌐 2. 自动挂载网络节点: {proxy_addr} ({'🇺🇸 纯净美国专线' if proxy_port == 17897 else '默认节点'})")
-
-    # 3. 配置 DrissionPage 浏览器
+    # 2. 自动获取本机真实可用代理（如 Clash 127.0.0.1:7897）
     co = ChromiumOptions()
     co.set_browser_path(r"C:\Program Files\Google\Chrome\Application\chrome.exe")
     co.set_local_port(9333)
     user_data_dir = os.path.abspath("dp_user_data")
     co.set_user_data_path(user_data_dir)
-    co.set_proxy(proxy_addr)
+
+    proxy_url = get_system_proxy()
+    if proxy_url:
+        print(f"🌐 2. 自动挂载本机代理: {proxy_url}")
+        co.set_proxy(proxy_url)
+    else:
+        print("🌐 2. 未检测到本地代理，使用网络直连模式")
+        
     co.headless(False)
 
     page = ChromiumPage(co)
